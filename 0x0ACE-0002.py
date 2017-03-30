@@ -1,3 +1,4 @@
+#!/usr/bin/python -B
 """Lets solve this one too."""
 import requests
 import binascii
@@ -68,9 +69,11 @@ class Controller(object):
 class VM(object):
     """A simple VM to solve the challenge."""
 
-    OPERATIONS = ['MOVE', 'OR', 'XOR', 'AND', 'NOT', 'ADD', 'SUB', 'MUL',
-                  'SH_L', 'SH_R', 'INC', 'DEC', 'PUSH', 'POP', 'CMP', 'JMP',
-                  'JP']
+    OPERATIONS = {'00': 'MOVE', '01': 'OR', '02': 'XOR', '03': 'AND',
+                  '04': 'NOT', '05': 'ADD', '06': 'SUB', '07': 'MUL',
+                  '08': 'SHL', '09': 'SHR', '0a': 'INC', '0b': 'DEC',
+                  '0c': 'PUSH', '0d': 'POP', '0e': 'CMP', '0f': 'JMP',
+                  '10': 'JPZ'}
 
     def __init__(self, registers, stack, program, ip=0):
         """Initialize the VM registers, stack, counter and code."""
@@ -78,6 +81,7 @@ class VM(object):
         self._stack = stack
         self._program = program
         self._ip = ip
+        self._zf = 0
 
     def __str__(self):
         """Print the VM status during execution."""
@@ -92,15 +96,31 @@ class VM(object):
         """Return the registers."""
         return self._registers
 
+    def instruction(self):
+        """Return the current instruction and increment IP."""
+        self._ip += 1
+        return self._program[self._ip-1]
+
+    def next(self):
+        """Return the next instruction."""
+        return self._program[self._ip+1]
+
     def execute(self):
         """Start processing the byte code."""
-        print('Running 0x0ACE VM\n{}').format(self)
+        print('Running 0x0ACE VM\n{}\n').format(self)
 
         program_lenght = len(self.program())
-        while self._ip < program_lenght:
-            self._ip += 1
 
-        print('\n\nFinished running 0x0ACE VM\n{}').format(self)
+        print '{:4} {:2} {:4} {:4} {:4} {}'.format('IP', 'HX', 'SRC', 'TRG',
+                                                   'OP', 'REGS')
+
+        while self._ip < program_lenght:
+            print '{:04d} {:2} {:4} {:4} {:4} {}'.format(self._ip,
+                                                         self.instruction(),
+                                                         'R0', '0000', 'MOVE',
+                                                         self._registers)
+
+        print('\nFinished running 0x0ACE VM\n{}\n').format(self)
 
     def move(self, code):
         """0x00 move."""
@@ -110,7 +130,7 @@ class VM(object):
 if __name__ == '__main__':
     controller = Controller()
 
-    vm = VM([0, 0, 0, 0], [], ['00', '12', '9f', '1a'])
+    vm = VM([0, 0, 0, 0], [], controller.parse())
     vm.execute()
 
     controller.submit(vm.registers())
