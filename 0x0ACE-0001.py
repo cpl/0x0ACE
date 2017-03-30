@@ -5,18 +5,10 @@ import math
 
 
 def is_prime(n):
-    """Check if number is prime."""
-    if n == 2:
-        return True
-    if n % 2 == 0 or n <= 1:
+    """Check for prime number."""
+    if n % 2 == 0 and n > 2:
         return False
-
-    sqr = int(math.sqrt(n)) + 1
-
-    for divisor in range(3, sqr, 2):
-        if n % divisor == 0:
-            return False
-    return True
+    return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
 
 url = 'http://5.9.247.121/d34dc0d3'
@@ -26,25 +18,28 @@ with open('.key', 'r') as keyfile:
 
 header = {'X-0x0ACE-Key': key.strip()}
 
-soup = bs.BeautifulSoup(requests.get(url, headers=header).content)
+ress = requests.get(url, headers=header)
+soup = bs.BeautifulSoup(ress.content)
 challenge = soup.find("span", {"class": "challenge"})
 
-digits = int(filter(str.isdigit, str(challenge.text)))
-val1 = int(str(digits)[:len(str(digits))/2])
-val2 = int(str(digits)[len(str(digits))/2:])
+val1 = int(filter(str.isdigit, str(challenge.text)[:10]))
+val2 = int(filter(str.isdigit, str(challenge.text)[10:]))
+
+print val1, val2
 
 verif = soup.find("input")
 verification = verif['value']
+print verification
 
 nums = []
-for num in range(val1+2, val2+1, 2):
+for num in range(val1+2, val2, 2):
     if is_prime(num):
         nums.append(str(num))
 
 solution = ', '.join(nums)
+print 'sol', len(solution)
 
-r = requests.post("http://5.9.247.121/d34dc0d3",
-                  headers={"X-0x0ACE-Key": key.strip()},
+r = requests.post(url, headers={"X-0x0ACE-Key": key},
                   data={"verification": verification, "solution": solution})
 
 print r.content
