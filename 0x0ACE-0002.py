@@ -40,8 +40,8 @@ class Controller(object):
         soup = bs.BeautifulSoup(html)
         link = soup.find('a')
 
-        challenge = link['href']
-        instructions = requests.get('http://'+self.host+challenge,
+        self.challenge = link['href']
+        instructions = requests.get('http://'+self.host+self.challenge,
                                     headers=self.header)
         self.binary_data = instructions.content
 
@@ -54,6 +54,16 @@ class Controller(object):
         program = [hexstring[i:i + 2] for i in range(0, len(hexstring), 2)]
         return program
 
+    def submit(self, registers):
+        """Submit the solution to the challenge."""
+        url = 'http://'+self.host+self.challenge
+        data = {'reg0': registers[0],
+                'reg1': registers[1],
+                'reg2': registers[2],
+                'reg3': registers[3]}
+        response = requests.post(url, data=data, headers=self.header)
+        print response.content
+
 
 class VM(object):
     """A simple VM to solve the challenge."""
@@ -62,45 +72,45 @@ class VM(object):
                   'SH_L', 'SH_R', 'INC', 'DEC', 'PUSH', 'POP', 'CMP', 'JMP',
                   'JP']
 
-    def __init__(self, registers, stack, program, pc=0):
+    def __init__(self, registers, stack, program, ip=0):
         """Initialize the VM registers, stack, counter and code."""
         self._registers = registers
         self._stack = stack
         self._program = program
-        self._pc = pc
+        self._ip = ip
 
     def __str__(self):
         """Print the VM status during execution."""
-        _string = 'VM(REG{},\n   STACK{}\n)'
-        return _string.format(self._registers, self._stack)
+        _string = 'VM(IP({}),\n   REG{},\n   STACK{}\n)'
+        return _string.format(self._ip, self._registers, self._stack)
 
     def program(self):
         """Return the byte code as hex."""
         return self._program
 
-    def push(self, value):
-        """0x0c    push on stack."""
-        self._stack.append(value)
+    def registers(self):
+        """Return the registers."""
+        return self._registers
 
-    def pop(self):
-        """0x0d    pop from stack."""
-        return self._stack.pop()
+    def execute(self):
+        """Start processing the byte code."""
+        print('Running 0x0ACE VM\n{}').format(self)
+
+        program_lenght = len(self.program())
+        while self._ip < program_lenght:
+            self._ip += 1
+
+        print('\n\nFinished running 0x0ACE VM\n{}').format(self)
+
+    def move(self, code):
+        """0x00 move."""
+        pass
 
 
 if __name__ == '__main__':
     controller = Controller()
-    vm = VM([0, 0, 0, 0], [], controller.parse())
 
-    operations = {'00': 'move', '01': '^or', '02': '^xor', '03': '^and',
-                  '04': '^not', '05': 'add', '06': 'sub', '07': 'mul',
-                  '08': '^lsh', '09': '^rsh', '0a': 'inc', '0b': 'dec',
-                  '0c': 'push', '0d': 'pop', '0e': 'compare', '0f': 'jump',
-                  '10': 'jump*'}
+    vm = VM([0, 0, 0, 0], [], ['00', '12', '9f', '1a'])
+    vm.execute()
 
-    for code in vm.program():
-        if code in operations.keys():
-            print operations[code],
-        else:
-            print code
-
-print vm.program()
+    controller.submit(vm.registers())
